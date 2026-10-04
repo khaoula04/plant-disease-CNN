@@ -1,0 +1,11 @@
+#temporary uploades
+
+uploades/*
+!uploades/ .gitkeep
+
+#python environnement
+venv/
+__pycache__/
+*.pyc
+
+

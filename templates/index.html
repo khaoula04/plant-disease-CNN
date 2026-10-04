@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Détection des Maladies des Plantes</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: #f3f4f2;
+    color: #2d2d2d;
+}
+
+/* HERO */
+.hero {
+    padding: 60px 10%;
+    background: linear-gradient(rgba(255,255,255,0.7), rgba(255,255,255,0.9)),
+                url('https://images.unsplash.com/photo-1501004318641-b39e6451bec6') center/cover;
+}
+
+.hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 48px;
+    margin: 0;
+}
+
+.hero h1 span {
+    color: #3a7d44;
+    font-style: italic;
+}
+
+.hero p {
+    margin-top: 10px;
+    max-width: 500px;
+    color: #555;
+}
+
+/* MAIN CARD */
+.card {
+    margin: -40px auto 40px;
+    width: 85%;
+    max-width: 900px;
+    background: #fff;
+    border-radius: 20px;
+    padding: 25px;
+    display: flex;
+    gap: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+
+/* LEFT */
+.left {
+    flex: 1;
+}
+
+.dropzone {
+    border: 2px dashed #d1d5db;
+    border-radius: 15px;
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.dropzone:hover {
+    border-color: #3a7d44;
+}
+
+.preview img {
+    width: 100%;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+/* RIGHT */
+.right {
+    flex: 1;
+    border-left: 1px solid #eee;
+    padding-left: 20px;
+}
+
+.result-box {
+    border: 1px dashed #ccc;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+/* BUTTON */
+button {
+    margin-top: 15px;
+    background: #3a7d44;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* HISTORY */
+.history {
+    width: 85%;
+    max-width: 900px;
+    margin: auto;
+}
+
+.history h2 {
+    font-family: 'Playfair Display';
+    margin-bottom: 15px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.card-item {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+.card-item img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+}
+
+.card-item .info {
+    padding: 10px;
+    font-size: 13px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- HERO -->
+<div class="hero">
+    <h1>Détection de Maladies <br><span>des Plantes</span></h1>
+    <p>
+        Téléversez une feuille, recevez un diagnostic instantané.
+        Notre IA identifie l’état de santé en quelques secondes.
+    </p>
+
+    <p class="disclaimer">
+    Ce modèle a été entraîné sur des images de laboratoire (fond uni, feuille isolée). 
+    Les résultats peuvent être moins fiables sur des photos prises en conditions réelles (jardin, champ).
+</p>
+</div>
+
+<!-- MAIN CARD -->
+<div class="card">
+
+    <!-- LEFT -->
+    <div class="left">
+        <h3>Analyseur</h3>
+
+        <div class="dropzone" onclick="fileInput.click()">
+            Déposez votre image ici <br><br>
+            <button>Sélectionner une image</button>
+            <input type="file" id="fileInput" hidden accept="image/png, image/jpeg">
+        </div>
+
+        <div class="preview" id="preview"></div>
+
+        <button onclick="upload()">Analyser</button>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right">
+        <h3>Diagnostic</h3>
+
+        <div class="result-box" id="result">
+            Le résultat apparaîtra ici après analyse
+        </div>
+    </div>
+
+</div>
+
+<!-- HISTORY -->
+<div class="history">
+    <h2>Dernières analyses</h2>
+
+    <div class="grid" id="history"></div>
+</div>
+
+<script>
+const fileInput = document.getElementById("fileInput");
+const preview = document.getElementById("preview");
+const historyDiv = document.getElementById("history");
+
+fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+
+    if (file.size > 10 * 1024 * 1024) {
+        alert("Max 10MB");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        preview.innerHTML = `<img src="${reader.result}">`;
+    };
+    reader.readAsDataURL(file);
+});
+
+async function upload() {
+    const file = fileInput.files[0];
+    if (!file) return alert("Ajoute une image");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    document.getElementById("result").innerHTML = "Analyse en cours...";
+
+    const res = await fetch("/predict", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+
+    document.getElementById("result").innerHTML = `
+        <h3>${data.disease}</h3>
+        <p>Confiance : ${data.confidence}%</p>
+    `;
+
+    // Ajouter à l'historique
+    const reader = new FileReader();
+    reader.onload = () => {
+        const card = document.createElement("div");
+        card.className = "card-item";
+        card.innerHTML = `
+            <img src="${reader.result}">
+            <div class="info">
+                ${data.disease}<br>
+                ${data.confidence}%
+            </div>
+        `;
+        historyDiv.prepend(card);
+    };
+    reader.readAsDataURL(file);
+}
+</script>
+
+</body>
+</html>
